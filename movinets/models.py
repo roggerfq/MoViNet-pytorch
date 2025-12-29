@@ -518,7 +518,8 @@ class MoViNet(nn.Module):
                  pretrained: bool = False,
                  num_classes: int = 600,
                  conv_type: str = "3d",
-                 tf_like: bool = False
+                 tf_like: bool = False,
+                 model_dir=None
                  ) -> None:
         super().__init__()
         """
@@ -533,6 +534,8 @@ class MoViNet(nn.Module):
         conv_type: type of convolution either 3d or 2plus1d
         tf_like: tf_like behaviour, basically same padding for convolutions
         """
+        
+        cfg.model_dir = model_dir
         if pretrained:
             tf_like = True
             num_classes = 600
@@ -602,15 +605,21 @@ class MoViNet(nn.Module):
         )
         if causal:
             self.cgap = TemporalCGAvgPool3D()
+        #print('cfg.stream_weights: ', cfg.stream_weights)
         if pretrained:
             if causal:
                 if cfg.name not in ["A0", "A1", "A2"]:
                     raise ValueError("Only A0,A1,A2 streaming" +
                                      "networks are available pretrained")
-                state_dict = (torch.hub
-                              .load_state_dict_from_url(cfg.stream_weights))
+                if(cfg.model_dir is not None):
+                   state_dict = (torch.hub.load_state_dict_from_url(cfg.stream_weights, model_dir=cfg.model_dir))
+                else:
+                   state_dict = (torch.hub.load_state_dict_from_url(cfg.stream_weights))
             else:
-                state_dict = torch.hub.load_state_dict_from_url(cfg.weights)
+                if(cfg.model_dir is not None):
+                   state_dict = torch.hub.load_state_dict_from_url(cfg.weights, model_dir=cfg.model_dir)
+                else:
+                   state_dict = torch.hub.load_state_dict_from_url(cfg.weights)
             self.load_state_dict(state_dict)
         else:
             self.apply(self._weight_init)
